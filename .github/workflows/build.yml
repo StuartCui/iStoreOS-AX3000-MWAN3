@@ -1,0 +1,46 @@
+name: Build Redmi AX3000 iStoreOS (with mwan3 + smartdns)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Setup build environment
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential ccache g++ gawk git gettext libncurses5-dev libssl-dev python3-distutils rsync unzip zlib1g-dev file wget curl
+
+    - name: Update & install feeds
+      run: |
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+    - name: Load custom config
+      run: |
+        cp .config .config.orig
+        make defconfig
+
+    - name: Build firmware
+      run: |
+        make -j$(nproc) || make -j1 V=s
+
+    - name: Upload firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: Redmi_AX3000_iStoreOS
+        path: bin/targets/
+
+    - name: Print success message
+      run: echo "✅ Build completed successfully! Check Actions Artifacts for firmware files."
